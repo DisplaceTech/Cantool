@@ -1,20 +1,10 @@
 package main
 
-import (
-	"fmt"
-	"os"
+import "github.com/displacetech/cantool/cmd"
 
-	"github.com/spf13/cobra"
-)
-
-var rootCmd = &cobra.Command{
-	Use:   "cantool",
-	Short: "Canton application development CLI",
-}
+var version = "dev"
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	cmd.SetVersion(version)
+	cmd.Execute()
 }
