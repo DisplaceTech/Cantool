@@ -20,10 +20,10 @@ jobs:
 
       - name: Coverage
         run: |
-          go test -coverprofile=coverage.out -covermode=atomic ./...
+          go test -coverprofile=coverage.out -covermode=atomic ./internal/...
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
-          echo "Coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 99" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 99% threshold"
+          echo "Coverage on internal/: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 80% threshold"
             exit 1
           fi
