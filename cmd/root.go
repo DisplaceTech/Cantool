@@ -12,6 +12,9 @@ var formatFlag string
 var rootCmd = &cobra.Command{
 	Use:   "cantool",
 	Short: "Canton application development CLI",
+	CompletionOptions: cobra.CompletionOptions{
+		HiddenDefaultCmd: true,
+	},
 }
 
 func init() {
