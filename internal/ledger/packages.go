@@ -43,13 +43,13 @@ func (c *HTTPLedgerClient) UploadDAR(ctx context.Context, darPath string) error 
 	mw := multipart.NewWriter(pw)
 
 	go func() {
-		part, err := mw.CreateFormFile("dar", darPath)
-		if err != nil {
-			pw.CloseWithError(err)
+		part, createErr := mw.CreateFormFile("dar", darPath)
+		if createErr != nil {
+			pw.CloseWithError(createErr)
 			return
 		}
-		if _, err := io.Copy(part, f); err != nil {
-			pw.CloseWithError(err)
+		if _, copyErr := io.Copy(part, f); copyErr != nil {
+			pw.CloseWithError(copyErr)
 			return
 		}
 		mw.Close()
