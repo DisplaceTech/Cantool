@@ -16,6 +16,9 @@ Canton application development CLI — project scaffolding, DAML compilation, te
 ## Installation
 
 ```bash
+# Homebrew (macOS)
+brew install displacetech/tap/cantool
+
 # Binary download (preferred for institutions)
 curl -sSL https://github.com/DisplaceTech/Cantool/releases/latest/download/cantool-$(uname -s)-$(uname -m) -o cantool
 chmod +x cantool && sudo mv cantool /usr/local/bin/
