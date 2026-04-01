@@ -96,14 +96,14 @@ func watchAndRebuild(ctx context.Context, f output.Formatter, runner exec.Comman
 	if err != nil {
 		return err
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	watchPaths := cfg.Dev.WatchPaths
 	if len(watchPaths) == 0 {
 		watchPaths = []string{"daml/"}
 	}
 	for _, p := range watchPaths {
-		watcher.Add(p)
+		_ = watcher.Add(p)
 	}
 
 	f.Info("Watching for changes. Press Ctrl+C to stop.")
@@ -126,7 +126,7 @@ func watchAndRebuild(ctx context.Context, f output.Formatter, runner exec.Comman
 			debounce = time.AfterFunc(100*time.Millisecond, func() {
 				f.Info(fmt.Sprintf("\n[%s] File changed: %s", time.Now().Format("15:04:05"), event.Name))
 				f.Info("Rebuilding...")
-				doBuild(ctx, f, runner, sdkInfo, cfg)
+				_ = doBuild(ctx, f, runner, sdkInfo, cfg)
 			})
 		case err, ok := <-watcher.Errors:
 			if !ok {

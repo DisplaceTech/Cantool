@@ -28,7 +28,7 @@ func (w *Watcher) Watch(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	for _, p := range w.paths {
 		if err := watcher.Add(p); err != nil {

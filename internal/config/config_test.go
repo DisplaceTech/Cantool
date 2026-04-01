@@ -116,7 +116,7 @@ func TestLoad_FindsConfigInCwd(t *testing.T) {
 
 	orig, _ := os.Getwd()
 	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { os.Chdir(orig) })
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestLoad_NoConfigAnywhere(t *testing.T) {
 	dir := t.TempDir()
 	orig, _ := os.Getwd()
 	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { os.Chdir(orig) })
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	_, err := Load()
 	var ce *output.CantoolError

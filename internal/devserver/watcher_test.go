@@ -25,10 +25,10 @@ func TestWatcher_DetectsFileChange(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go w.Watch(ctx)
+	go func() { _ = w.Watch(ctx) }()
 	time.Sleep(100 * time.Millisecond) // let watcher start
 
-	os.WriteFile(testFile, []byte("changed"), 0644)
+	_ = os.WriteFile(testFile, []byte("changed"), 0644)
 	time.Sleep(200 * time.Millisecond) // wait for debounce
 
 	assert.GreaterOrEqual(t, called.Load(), int32(1))
@@ -47,12 +47,12 @@ func TestWatcher_Debounce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go w.Watch(ctx)
+	go func() { _ = w.Watch(ctx) }()
 	time.Sleep(100 * time.Millisecond)
 
 	// Rapid writes should be debounced into one callback
 	for i := 0; i < 5; i++ {
-		os.WriteFile(testFile, []byte("change"), 0644)
+		_ = os.WriteFile(testFile, []byte("change"), 0644)
 		time.Sleep(10 * time.Millisecond)
 	}
 	time.Sleep(400 * time.Millisecond)

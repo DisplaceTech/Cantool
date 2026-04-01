@@ -69,7 +69,7 @@ func (d *DevServer) Start(ctx context.Context) error {
 		}
 		return err
 	}
-	defer sandbox.Stop()
+	defer func() { _ = sandbox.Stop() }()
 
 	// 4. Health poll
 	baseURL := fmt.Sprintf("http://localhost:%d", port)

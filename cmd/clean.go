@@ -63,7 +63,7 @@ func runClean(cmd *cobra.Command, _ []string) error {
 
 func dirSize(path string) int64 {
 	var size int64
-	filepath.Walk(path, func(_ string, info os.FileInfo, _ error) error {
+	_ = filepath.Walk(path, func(_ string, info os.FileInfo, _ error) error {
 		if info != nil && !info.IsDir() {
 			size += info.Size()
 		}

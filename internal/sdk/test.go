@@ -58,8 +58,6 @@ func Test(ctx context.Context, runner exec.CommandRunner, sdk *SDKInfo, projectD
 	return result, nil
 }
 
-var testLineRe = regexp.MustCompile(`(?i)(ok|pass|fail|error)\s+.*?(\w+Test\w*|\w+test\w*)`)
-
 func parseTestCases(s string) []TestCase {
 	var cases []TestCase
 	lines := strings.Split(s, "\n")

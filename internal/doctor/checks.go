@@ -196,7 +196,7 @@ func (c *PortCheck) Run(_ context.Context) CheckResult {
 			Suggestion: fmt.Sprintf("Port %d is in use", c.Port),
 		}
 	}
-	ln.Close()
+	_ = ln.Close()
 
 	return CheckResult{
 		Name:    name,
