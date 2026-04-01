@@ -1,0 +1,17 @@
+module Main where
+
+-- | A simple asset template.
+template Asset
+  with
+    owner : Party
+    name : Text
+    value : Decimal
+  where
+    signatory owner
+
+    choice Transfer : ContractId Asset
+      with
+        newOwner : Party
+      controller owner
+      do
+        create this with owner = newOwner
