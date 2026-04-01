@@ -28,16 +28,15 @@ checksum:
 changelog:
   sort: asc
 
-brews:
-  - repository:
-      owner: DisplaceTech
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
+homebrew_casks:
+  - name: cantool
+    binaries:
+      - cantool
     homepage: "https://github.com/DisplaceTech/Cantool"
     description: "Canton application development CLI"
     license: "Apache-2.0"
-    install: |
-      bin.install "cantool"
-    test: |
-      system "#{bin}/cantool", "--version"
+    repository:
+      owner: DisplaceTech
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
