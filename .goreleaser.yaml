@@ -1,0 +1,42 @@
+version: 2
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+
+homebrew_casks:
+  - name: cantool
+    binaries:
+      - cantool
+    homepage: "https://github.com/DisplaceTech/Cantool"
+    description: "Canton application development CLI"
+    license: "Apache-2.0"
+    repository:
+      owner: DisplaceTech
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks

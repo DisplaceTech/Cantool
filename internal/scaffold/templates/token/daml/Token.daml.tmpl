@@ -1,0 +1,38 @@
+module Token where
+
+-- | A fungible token with issuer and owner.
+template Token
+  with
+    issuer : Party
+    owner : Party
+    symbol : Text
+    amount : Decimal
+  where
+    signatory issuer
+    observer owner
+
+    ensure amount > 0.0
+
+    choice Transfer : ContractId Token
+      with
+        newOwner : Party
+      controller owner
+      do
+        create this with owner = newOwner
+
+    choice Mint : ContractId Token
+      with
+        mintAmount : Decimal
+      controller issuer
+      do
+        assert (mintAmount > 0.0)
+        create this with amount = amount + mintAmount
+
+    choice Burn : ContractId Token
+      with
+        burnAmount : Decimal
+      controller issuer
+      do
+        assert (burnAmount > 0.0)
+        assert (burnAmount <= amount)
+        create this with amount = amount - burnAmount

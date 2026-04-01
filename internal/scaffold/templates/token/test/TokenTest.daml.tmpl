@@ -1,0 +1,87 @@
+module TokenTest where
+
+import Token
+import Daml.Script
+
+testTokenCreation : Script ()
+testTokenCreation = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  tokenCid <- submit alice do
+    createCmd Token with
+      issuer = alice
+      owner = bob
+      symbol = "ABC"
+      amount = 1000.0
+
+  token <- queryContractId bob tokenCid
+  case token of
+    Some t -> do
+      assert (t.symbol == "ABC")
+      assert (t.amount == 1000.0)
+      assert (t.owner == bob)
+    None -> abort "Token not found"
+
+testTokenTransfer : Script ()
+testTokenTransfer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  tokenCid <- submit alice do
+    createCmd Token with
+      issuer = alice
+      owner = bob
+      symbol = "ABC"
+      amount = 500.0
+
+  newTokenCid <- submit bob do
+    exerciseCmd tokenCid Transfer with newOwner = charlie
+
+  newToken <- queryContractId charlie newTokenCid
+  case newToken of
+    Some t -> do
+      assert (t.owner == charlie)
+      assert (t.amount == 500.0)
+    None -> abort "Transferred token not found"
+
+testTokenMint : Script ()
+testTokenMint = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  tokenCid <- submit alice do
+    createCmd Token with
+      issuer = alice
+      owner = bob
+      symbol = "ABC"
+      amount = 100.0
+
+  mintedCid <- submit alice do
+    exerciseCmd tokenCid Mint with mintAmount = 50.0
+
+  minted <- queryContractId bob mintedCid
+  case minted of
+    Some t -> assert (t.amount == 150.0)
+    None -> abort "Minted token not found"
+
+testTokenBurn : Script ()
+testTokenBurn = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  tokenCid <- submit alice do
+    createCmd Token with
+      issuer = alice
+      owner = bob
+      symbol = "ABC"
+      amount = 200.0
+
+  burnedCid <- submit alice do
+    exerciseCmd tokenCid Burn with burnAmount = 75.0
+
+  burned <- queryContractId bob burnedCid
+  case burned of
+    Some t -> assert (t.amount == 125.0)
+    None -> abort "Burned token not found"

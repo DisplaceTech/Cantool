@@ -1,0 +1,40 @@
+module Test where
+
+import Main
+import Daml.Script
+
+testAssetCreation : Script ()
+testAssetCreation = script do
+  alice <- allocateParty "Alice"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      owner = alice
+      name = "TestAsset"
+      value = 100.0
+
+  asset <- queryContractId alice assetCid
+  case asset of
+    Some a -> do
+      assert (a.name == "TestAsset")
+      assert (a.value == 100.0)
+    None -> abort "Asset not found"
+
+testAssetTransfer : Script ()
+testAssetTransfer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      owner = alice
+      name = "TransferAsset"
+      value = 50.0
+
+  newAssetCid <- submit alice do
+    exerciseCmd assetCid Transfer with newOwner = bob
+
+  newAsset <- queryContractId bob newAssetCid
+  case newAsset of
+    Some a -> assert (a.owner == bob)
+    None -> abort "Transferred asset not found"
