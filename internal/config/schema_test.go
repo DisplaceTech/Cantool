@@ -154,6 +154,26 @@ plugins:
 	assert.False(t, cfg.Plugins.Convenience.Enabled)
 }
 
+func TestValidateGlobal_NoVersion(t *testing.T) {
+	c := Config{}
+	assert.NoError(t, c.ValidateGlobal())
+}
+
+func TestValidateGlobal_Version1(t *testing.T) {
+	c := Config{Version: "1"}
+	assert.NoError(t, c.ValidateGlobal())
+}
+
+func TestValidateGlobal_InvalidVersion(t *testing.T) {
+	c := Config{Version: "2"}
+	requireCode(t, c.ValidateGlobal(), "CT1004")
+}
+
+func TestValidateGlobal_NoProjectNameRequired(t *testing.T) {
+	c := Config{Version: "1"}
+	assert.NoError(t, c.ValidateGlobal(), "global config should not require project.name")
+}
+
 func TestLoadFrom_NoPluginsSection(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `version: "1"

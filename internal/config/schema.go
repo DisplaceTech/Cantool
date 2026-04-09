@@ -104,6 +104,17 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// ValidateGlobal checks a global config file for structural correctness.
+// Global configs are more relaxed: only the version field is required.
+// Project-specific fields like project.name are not checked.
+func (c *Config) ValidateGlobal() error {
+	if c.Version != "" && c.Version != "1" {
+		return output.Errorf("CT1004", `Only version "1" is supported`,
+			"unsupported config version %q in global config", c.Version)
+	}
+	return nil
+}
+
 func validatePort(port int, section, field string) error {
 	if port == 0 {
 		return nil // unset is ok
