@@ -61,10 +61,7 @@ func runPluginList(_ *cobra.Command, _ []string) error {
 	f.Info("Plugins\n")
 	f.Table([]string{"NAME", "STATUS", "TYPE", "DESCRIPTION"}, rows)
 
-	f.Info("\nEnable the convenience plugin in cantool.yaml or ~/.config/cantool/config.yaml:")
-	f.Info("  plugins:")
-	f.Info("    convenience:")
-	f.Info("      enabled: true")
+	f.Info("\nSee https://github.com/DisplaceTech/Cantool#plugins for plugin management.")
 
 	return nil
 }
