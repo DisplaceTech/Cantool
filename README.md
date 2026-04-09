@@ -27,7 +27,7 @@ curl -sSL "https://github.com/DisplaceTech/Cantool/releases/latest/download/cant
 sudo mv cantool /usr/local/bin/
 
 # Go install (for Go developers)
-go install github.com/DisplaceTech/Cantool@latest
+go install github.com/displacetech/cantool@latest
 ```
 
 ## Quick Start
@@ -87,7 +87,7 @@ These commands are provided by the built-in `convenience` plugin and must be ena
 
 Cantool supports two levels of configuration:
 
-1. **Global config** — `~/.config/cantool/config.yaml` (XDG) or `~/.cantool/config.yaml` (fallback). Applied to all projects. Useful for enabling plugins once across all projects.
+1. **Global config** — checked in order: `$XDG_CONFIG_HOME/cantool/config.yaml` (default `~/.config/cantool/`), `~/Library/Application Support/cantool/config.yaml` (macOS only), `~/.cantool/config.yaml` (fallback). Applied to all projects. Useful for enabling plugins once across all projects.
 2. **Project config** — `cantool.yaml` in the project root. Project settings override global settings.
 
 ### Global Config
@@ -95,8 +95,18 @@ Cantool supports two levels of configuration:
 Create a global config to set defaults for all projects:
 
 ```bash
+# Linux
 mkdir -p ~/.config/cantool
 cat > ~/.config/cantool/config.yaml << 'EOF'
+version: "1"
+plugins:
+  convenience:
+    enabled: true
+EOF
+
+# macOS
+mkdir -p ~/Library/Application\ Support/cantool
+cat > ~/Library/Application\ Support/cantool/config.yaml << 'EOF'
 version: "1"
 plugins:
   convenience:
@@ -170,8 +180,18 @@ The `convenience` plugin ships with Cantool and provides wrapper commands for co
 To enable it globally (all projects):
 
 ```bash
+# Linux
 mkdir -p ~/.config/cantool
 cat > ~/.config/cantool/config.yaml << 'EOF'
+version: "1"
+plugins:
+  convenience:
+    enabled: true
+EOF
+
+# macOS
+mkdir -p ~/Library/Application\ Support/cantool
+cat > ~/Library/Application\ Support/cantool/config.yaml << 'EOF'
 version: "1"
 plugins:
   convenience:
