@@ -8,7 +8,7 @@ Canton application development CLI — project scaffolding, DAML compilation, te
 
 ## Why Cantool
 
-- **Single binary, zero runtime dependencies for core commands.** Download one file, `chmod +x`, run. The core CLI (scaffolding, MCP server, environments, plugins) requires no JVM, Node.js, or container runtime. The optional convenience commands (`build`, `test`, `dev`) delegate to dpm and require its prerequisites (JDK 17+, etc.) — run `cantool doctor` to verify.
+- **Single binary, zero runtime dependencies for core commands.** Download one file, `chmod +x`, run. The core CLI (scaffolding, MCP server, environments, plugins) requires no JVM, Node.js, or container runtime.
 - **Cross-compilation.** `GOOS=linux GOARCH=amd64 go build` produces a Linux binary from macOS. CI builds for all platforms trivially.
 - **Static linking.** No shared library conflicts, no version mismatches, no container image bloat. Copy the binary into an air-gapped environment and it works.
 - **Plugin system.** Extensible via JSON-RPC plugins. Core commands prove the plugin contract before any external plugins ship.
@@ -63,7 +63,7 @@ cantool dev
 | `cantool mcp serve` | Start MCP server for AI assistant integration (stdio) |
 | `cantool plugin list` | List installed plugins |
 
-### Convenience Commands (plugin)
+### Optional Convenience Commands (plugin)
 
 These commands are provided by the built-in `convenience` plugin and must be enabled in `cantool.yaml` (see [Plugins](#plugins)). They delegate to dpm/daml and print an attribution line to stderr (e.g., `-> delegating to dpm build`).
 
