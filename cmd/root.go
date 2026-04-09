@@ -21,10 +21,17 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&formatFlag, "format", "human", "Output format: human, json, quiet")
-	registerConvenienceCommands()
+	cobra.OnInitialize(registerConvenienceCommands)
 }
 
+var convenienceRegistered bool
+
 func registerConvenienceCommands() {
+	if convenienceRegistered {
+		return
+	}
+	convenienceRegistered = true
+
 	cfg, err := config.LoadWithGlobal()
 	if err != nil || cfg == nil {
 		return
@@ -41,6 +48,16 @@ func registerConvenienceCommands() {
 		DevCmd,
 		DoctorCmd,
 	})
+}
+
+// ConvenienceEnabled reports whether the convenience plugin is currently
+// enabled according to the loaded config. This is used by plugin list.
+func ConvenienceEnabled() bool {
+	cfg, err := config.LoadWithGlobal()
+	if err != nil || cfg == nil {
+		return false
+	}
+	return cfg.Plugins.Convenience.Enabled
 }
 
 // SetVersion sets the version string displayed by --version.
