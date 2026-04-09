@@ -28,6 +28,9 @@ dev:
     - "daml/"
   hot-reload: true
   sandbox-port: 5011
+plugins:
+  convenience:
+    enabled: true
 `
 
 func writeTempConfig(t *testing.T, dir, content string) string {
@@ -50,6 +53,7 @@ func TestLoadFrom_ValidConfig(t *testing.T) {
 	assert.Equal(t, "Alice", cfg.Parties[0].Name)
 	assert.Equal(t, 5011, cfg.Environments["local"].LedgerPort)
 	assert.True(t, cfg.Dev.HotReload)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
 }
 
 func TestLoadFrom_InvalidYAML(t *testing.T) {

@@ -17,7 +17,8 @@ builds:
       - -s -w -X main.version={{.Version}}
 
 archives:
-  - format_overrides:
+  - name_template: "cantool_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
       - goos: windows
         formats:
           - zip

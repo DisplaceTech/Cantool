@@ -14,7 +14,18 @@ type Config struct {
 	Parties      []PartyConfig        `yaml:"parties" mapstructure:"parties"`
 	Environments map[string]EnvConfig `yaml:"environments" mapstructure:"environments"`
 	Dev          DevConfig            `yaml:"dev" mapstructure:"dev"`
-	Plugins      []string             `yaml:"plugins" mapstructure:"plugins"`
+	Plugins      PluginsConfig        `yaml:"plugins" mapstructure:"plugins"`
+}
+
+// PluginsConfig holds configuration for built-in and external plugins.
+type PluginsConfig struct {
+	Convenience ConvenienceConfig `yaml:"convenience" mapstructure:"convenience"`
+}
+
+// ConvenienceConfig controls the built-in convenience commands plugin.
+// Disabled by default (zero value of bool is false).
+type ConvenienceConfig struct {
+	Enabled bool `yaml:"enabled" mapstructure:"enabled"`
 }
 
 // ProjectConfig identifies the project.

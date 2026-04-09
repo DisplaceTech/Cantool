@@ -2,6 +2,8 @@ package config
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/displacetech/cantool/internal/output"
@@ -101,4 +103,67 @@ func TestValidate_InvalidDevSandboxPort(t *testing.T) {
 	c := validConfig()
 	c.Dev.SandboxPort = -1
 	requireCode(t, c.Validate(), "CT1007")
+}
+
+func TestConvenienceConfig_DisabledByDefault(t *testing.T) {
+	var pc PluginsConfig
+	assert.False(t, pc.Convenience.Enabled)
+}
+
+func TestConvenienceConfig_Enabled(t *testing.T) {
+	pc := PluginsConfig{Convenience: ConvenienceConfig{Enabled: true}}
+	assert.True(t, pc.Convenience.Enabled)
+}
+
+func TestConvenienceConfig_ExplicitlyDisabled(t *testing.T) {
+	pc := PluginsConfig{Convenience: ConvenienceConfig{Enabled: false}}
+	assert.False(t, pc.Convenience.Enabled)
+}
+
+func TestLoadFrom_ConvenienceEnabled(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `version: "1"
+project:
+  name: test-app
+plugins:
+  convenience:
+    enabled: true
+`
+	path := filepath.Join(dir, "cantool.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(yaml), 0644))
+
+	cfg, err := LoadFrom(path)
+	require.NoError(t, err)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestLoadFrom_ConvenienceDisabled(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `version: "1"
+project:
+  name: test-app
+plugins:
+  convenience:
+    enabled: false
+`
+	path := filepath.Join(dir, "cantool.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(yaml), 0644))
+
+	cfg, err := LoadFrom(path)
+	require.NoError(t, err)
+	assert.False(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestLoadFrom_NoPluginsSection(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `version: "1"
+project:
+  name: test-app
+`
+	path := filepath.Join(dir, "cantool.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(yaml), 0644))
+
+	cfg, err := LoadFrom(path)
+	require.NoError(t, err)
+	assert.False(t, cfg.Plugins.Convenience.Enabled)
 }

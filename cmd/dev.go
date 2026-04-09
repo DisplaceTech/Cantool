@@ -2,27 +2,29 @@ package cmd
 
 import (
 	"github.com/displacetech/cantool/internal/config"
+	"github.com/displacetech/cantool/internal/convenience"
 	"github.com/displacetech/cantool/internal/devserver"
 	"github.com/displacetech/cantool/internal/exec"
 	"github.com/displacetech/cantool/internal/output"
+	"github.com/displacetech/cantool/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
-var devPort int
+var DevPort int
 
-var devCmd = &cobra.Command{
+var DevCmd = &cobra.Command{
 	Use:   "dev",
 	Short: "Start local Canton sandbox with hot-reload",
 	RunE:  runDev,
 }
 
 func init() {
-	devCmd.Flags().IntVar(&devPort, "port", 0, "Sandbox port (default: from cantool.yaml or 5011)")
-	rootCmd.AddCommand(devCmd)
+	DevCmd.Flags().IntVar(&DevPort, "port", 0, "Sandbox port (default: from cantool.yaml or 5011)")
 }
 
 func runDev(cmd *cobra.Command, _ []string) error {
 	f := output.New(Format())
+	runner := &exec.DefaultRunner{}
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -32,11 +34,22 @@ func runDev(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	detector := &sdk.PathDetector{Runner: runner}
+	sdkInfo, err := detector.Detect(cmd.Context())
+	if err != nil {
+		if ce, ok := err.(*output.CantoolError); ok {
+			f.Error(ce)
+		}
+		return err
+	}
+
+	convenience.PrintDelegation(sdkInfo.Command, "sandbox")
+
 	srv := &devserver.DevServer{
 		Config:    cfg,
-		Runner:    &exec.DefaultRunner{},
+		Runner:    runner,
 		Formatter: f,
-		Port:      devPort,
+		Port:      DevPort,
 	}
 
 	return srv.Start(cmd.Context())

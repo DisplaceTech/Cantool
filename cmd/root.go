@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/displacetech/cantool/internal/config"
+	"github.com/displacetech/cantool/internal/convenience"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,26 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&formatFlag, "format", "human", "Output format: human, json, quiet")
+	registerConvenienceCommands()
+}
+
+func registerConvenienceCommands() {
+	cfg, err := config.Load()
+	if err != nil {
+		return
+	}
+
+	if !cfg.Plugins.Convenience.Enabled {
+		return
+	}
+
+	convenience.Register(rootCmd, []*cobra.Command{
+		BuildCmd,
+		TestCmd,
+		CleanCmd,
+		DevCmd,
+		DoctorCmd,
+	})
 }
 
 // SetVersion sets the version string displayed by --version.
