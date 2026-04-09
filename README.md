@@ -37,20 +37,18 @@ go install github.com/displacetech/cantool@latest
 cantool init my-app --template basic
 cd my-app
 
-# Enable convenience commands (build, test, dev, clean, doctor)
-# Either set globally once: see Configuration > Global Config
-# Or per-project in cantool.yaml: plugins.convenience.enabled: true
+# Check environment status
+cantool status
 
-# Check prerequisites
-cantool doctor
+# Manage environments
+cantool env add local --host localhost --ledger-port 5011
+cantool env use local
 
-# Build and test
-cantool build
-cantool test
-
-# Start local sandbox with hot-reload
-cantool dev
+# See installed plugins
+cantool plugin list
 ```
+
+To also get `build`, `test`, `dev`, `clean`, and `doctor` commands, enable the convenience plugin (see [Plugins](#plugins)).
 
 ## Commands
 
