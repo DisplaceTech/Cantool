@@ -160,6 +160,8 @@ func writeFile(t *testing.T, path, content string) {
 }
 
 func TestLoadGlobal_XDGPath(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), globalYAML)
 
@@ -170,6 +172,8 @@ func TestLoadGlobal_XDGPath(t *testing.T) {
 }
 
 func TestLoadGlobal_DotCantoolFallback(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".cantool", "config.yaml"), globalYAML)
 
@@ -180,6 +184,8 @@ func TestLoadGlobal_DotCantoolFallback(t *testing.T) {
 }
 
 func TestLoadGlobal_XDGTakesPrecedence(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), globalYAML)
 	writeFile(t, filepath.Join(home, ".cantool", "config.yaml"), `version: "1"
@@ -194,7 +200,23 @@ plugins:
 	assert.True(t, cfg.Plugins.Convenience.Enabled, "XDG path should take precedence")
 }
 
+func TestLoadGlobal_XDGConfigHomeEnvVar(t *testing.T) {
+	customDir := t.TempDir()
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", customDir)
+
+	writeFile(t, filepath.Join(customDir, "cantool", "config.yaml"), globalYAML)
+
+	home := t.TempDir()
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
 func TestLoadGlobal_NoFile(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 
 	cfg, err := loadGlobal(func() (string, error) { return home, nil })
@@ -203,6 +225,8 @@ func TestLoadGlobal_NoFile(t *testing.T) {
 }
 
 func TestLoadGlobal_InvalidYAML(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), "{{invalid")
 
@@ -213,6 +237,8 @@ func TestLoadGlobal_InvalidYAML(t *testing.T) {
 }
 
 func TestLoadGlobal_InvalidVersion(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), `version: "99"
 plugins:
@@ -227,6 +253,8 @@ plugins:
 }
 
 func TestLoadGlobal_NoVersionOK(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	home := t.TempDir()
 	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), `plugins:
   convenience:
@@ -234,6 +262,79 @@ func TestLoadGlobal_NoVersionOK(t *testing.T) {
 `)
 
 	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestGlobalConfigPaths_IncludesAllCandidates(t *testing.T) {
+	home := "/fakehome"
+
+	t.Run("with native dir matching XDG", func(t *testing.T) {
+		t.Setenv("XDG_CONFIG_HOME", "")
+		fn := func() (string, error) { return filepath.Join(home, ".config"), nil }
+		paths := globalConfigPaths(home, fn)
+
+		assert.Equal(t, 2, len(paths), "XDG and dotfile only (native deduped)")
+		assert.Equal(t, filepath.Join(home, ".config", "cantool", "config.yaml"), paths[0])
+		assert.Equal(t, filepath.Join(home, ".cantool", "config.yaml"), paths[1])
+	})
+
+	t.Run("with native dir differing from XDG", func(t *testing.T) {
+		t.Setenv("XDG_CONFIG_HOME", "")
+		fn := func() (string, error) { return "/Library/Application Support", nil }
+		paths := globalConfigPaths(home, fn)
+
+		assert.Equal(t, 3, len(paths), "XDG, native, and dotfile")
+		assert.Equal(t, filepath.Join(home, ".config", "cantool", "config.yaml"), paths[0])
+		assert.Equal(t, "/Library/Application Support/cantool/config.yaml", paths[1])
+		assert.Equal(t, filepath.Join(home, ".cantool", "config.yaml"), paths[2])
+	})
+
+	t.Run("with nil configDirFn", func(t *testing.T) {
+		t.Setenv("XDG_CONFIG_HOME", "")
+		paths := globalConfigPaths(home, nil)
+		assert.Equal(t, 2, len(paths), "XDG and dotfile only")
+	})
+
+	t.Run("with XDG_CONFIG_HOME set", func(t *testing.T) {
+		t.Setenv("XDG_CONFIG_HOME", "/custom/config")
+		fn := func() (string, error) { return filepath.Join(home, ".config"), nil }
+		paths := globalConfigPaths(home, fn)
+
+		assert.Equal(t, 3, len(paths), "custom XDG, native, and dotfile")
+		assert.Equal(t, "/custom/config/cantool/config.yaml", paths[0])
+		assert.Equal(t, filepath.Join(home, ".config", "cantool", "config.yaml"), paths[1])
+		assert.Equal(t, filepath.Join(home, ".cantool", "config.yaml"), paths[2])
+	})
+
+	t.Run("with XDG_CONFIG_HOME relative path ignored", func(t *testing.T) {
+		t.Setenv("XDG_CONFIG_HOME", "relative/path")
+		paths := globalConfigPaths(home, nil)
+
+		assert.Equal(t, filepath.Join(home, ".config", "cantool", "config.yaml"), paths[0],
+			"relative XDG_CONFIG_HOME should be ignored per spec")
+	})
+}
+
+func TestLoadGlobal_NativeConfigDirPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+
+	home := t.TempDir()
+	nativeConfigDir := filepath.Join(t.TempDir(), "Library", "Application Support")
+
+	writeFile(t, filepath.Join(nativeConfigDir, "cantool", "config.yaml"), globalYAML)
+
+	// Inject our fake configDirFn via globalConfigPaths indirectly:
+	// we need to use a loadGlobal variant that can find the native path.
+	// Since loadGlobal calls os.UserConfigDir internally, for this test
+	// we directly verify via globalConfigPaths + loadGlobalFrom.
+	paths := globalConfigPaths(home, func() (string, error) { return nativeConfigDir, nil })
+
+	require.Equal(t, 3, len(paths))
+	assert.Equal(t, filepath.Join(nativeConfigDir, "cantool", "config.yaml"), paths[1])
+
+	cfg, err := loadGlobalFrom(paths[1])
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	assert.True(t, cfg.Plugins.Convenience.Enabled)

@@ -65,9 +65,12 @@ func LoadWithGlobal() (*Config, error) {
 	return mergeConfig(global, project), nil
 }
 
-// LoadGlobal reads the user-level config file. It checks
-// ~/.config/cantool/config.yaml first (XDG), then ~/.cantool/config.yaml.
-// Returns nil with no error if neither file exists.
+// LoadGlobal reads the user-level config file. Search order:
+//  1. $XDG_CONFIG_HOME/cantool/config.yaml (default: ~/.config/cantool/)
+//  2. os.UserConfigDir()/cantool/config.yaml (macOS: ~/Library/Application Support/cantool/)
+//  3. ~/.cantool/config.yaml
+//
+// Returns nil with no error if no config file is found.
 func LoadGlobal() (*Config, error) {
 	return loadGlobal(os.UserHomeDir)
 }
@@ -78,10 +81,7 @@ func loadGlobal(homeFn func() (string, error)) (*Config, error) {
 		return nil, nil
 	}
 
-	candidates := []string{
-		filepath.Join(home, ".config", "cantool", globalConfigFileName),
-		filepath.Join(home, ".cantool", globalConfigFileName),
-	}
+	candidates := globalConfigPaths(home, os.UserConfigDir)
 
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
@@ -90,6 +90,42 @@ func loadGlobal(homeFn func() (string, error)) (*Config, error) {
 	}
 
 	return nil, nil
+}
+
+// globalConfigPaths returns the ordered candidate paths for global config:
+//  1. $XDG_CONFIG_HOME/cantool/config.yaml (falls back to $HOME/.config/cantool/)
+//  2. os.UserConfigDir()/cantool/config.yaml (macOS: ~/Library/Application Support/)
+//  3. $HOME/.cantool/config.yaml (legacy dotfile fallback)
+//
+// Duplicate paths are suppressed so each location is checked at most once.
+func globalConfigPaths(home string, configDirFn func() (string, error)) []string {
+	var xdgBase string
+	if v := os.Getenv("XDG_CONFIG_HOME"); v != "" && filepath.IsAbs(v) {
+		xdgBase = v
+	} else {
+		xdgBase = filepath.Join(home, ".config")
+	}
+	xdgPath := filepath.Join(xdgBase, "cantool", globalConfigFileName)
+
+	seen := map[string]bool{xdgPath: true}
+	paths := []string{xdgPath}
+
+	if configDirFn != nil {
+		if configDir, err := configDirFn(); err == nil {
+			nativePath := filepath.Join(configDir, "cantool", globalConfigFileName)
+			if !seen[nativePath] {
+				seen[nativePath] = true
+				paths = append(paths, nativePath)
+			}
+		}
+	}
+
+	dotfilePath := filepath.Join(home, ".cantool", globalConfigFileName)
+	if !seen[dotfilePath] {
+		paths = append(paths, dotfilePath)
+	}
+
+	return paths
 }
 
 func loadGlobalFrom(path string) (*Config, error) {
