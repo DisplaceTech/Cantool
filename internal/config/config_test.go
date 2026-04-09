@@ -314,6 +314,7 @@ func TestLoadWithGlobal_ProjectOnly(t *testing.T) {
 }
 
 func TestLoadWithGlobal_NeitherExists(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	dir := t.TempDir()
 	orig, _ := os.Getwd()
 	require.NoError(t, os.Chdir(dir))

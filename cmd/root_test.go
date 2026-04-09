@@ -16,7 +16,24 @@ func writeTestConfig(t *testing.T, dir, content string) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "cantool.yaml"), []byte(content), 0644))
 }
 
+func removeConvenienceCommands(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{"build", "test", "clean", "dev", "doctor"} {
+		if c := findSubCommand(name); c != nil {
+			rootCmd.RemoveCommand(c)
+		}
+	}
+}
+
+// isolateHome sets HOME to an empty temp dir so tests don't pick up
+// the real user's global config at ~/.config/cantool/config.yaml.
+func isolateHome(t *testing.T) {
+	t.Helper()
+	t.Setenv("HOME", t.TempDir())
+}
+
 func TestConvenienceCommands_RegisterWhenEnabled(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:
@@ -30,14 +47,9 @@ plugins:
 	require.NoError(t, os.Chdir(dir))
 	t.Cleanup(func() {
 		_ = os.Chdir(orig)
-		// Reset registration state for other tests
-		convenienceRegistered = false
-		for _, name := range []string{"build", "test", "clean", "dev", "doctor"} {
-			rootCmd.RemoveCommand(findSubCommand(name))
-		}
+		removeConvenienceCommands(t)
 	})
 
-	convenienceRegistered = false
 	registerConvenienceCommands()
 
 	names := commandNames(rootCmd)
@@ -49,6 +61,7 @@ plugins:
 }
 
 func TestConvenienceCommands_NotRegisteredWhenDisabled(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:
@@ -60,12 +73,9 @@ plugins:
 
 	orig, _ := os.Getwd()
 	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() {
-		_ = os.Chdir(orig)
-		convenienceRegistered = false
-	})
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
-	convenienceRegistered = false
+	removeConvenienceCommands(t)
 	registerConvenienceCommands()
 
 	names := commandNames(rootCmd)
@@ -77,16 +87,14 @@ plugins:
 }
 
 func TestConvenienceCommands_NotRegisteredWithNoConfig(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 
 	orig, _ := os.Getwd()
 	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() {
-		_ = os.Chdir(orig)
-		convenienceRegistered = false
-	})
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
-	convenienceRegistered = false
+	removeConvenienceCommands(t)
 	registerConvenienceCommands()
 
 	names := commandNames(rootCmd)
@@ -95,6 +103,7 @@ func TestConvenienceCommands_NotRegisteredWithNoConfig(t *testing.T) {
 }
 
 func TestConvenienceEnabled_True(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:
@@ -112,6 +121,7 @@ plugins:
 }
 
 func TestConvenienceEnabled_False(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:
@@ -126,6 +136,7 @@ project:
 }
 
 func TestPluginList_ShowsConveniencePlugin(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:
@@ -152,6 +163,7 @@ plugins:
 }
 
 func TestPluginList_ShowsDisabledWhenNotEnabled(t *testing.T) {
+	isolateHome(t)
 	dir := t.TempDir()
 	writeTestConfig(t, dir, `version: "1"
 project:

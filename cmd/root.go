@@ -21,17 +21,10 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&formatFlag, "format", "human", "Output format: human, json, quiet")
-	cobra.OnInitialize(registerConvenienceCommands)
+	registerConvenienceCommands()
 }
 
-var convenienceRegistered bool
-
 func registerConvenienceCommands() {
-	if convenienceRegistered {
-		return
-	}
-	convenienceRegistered = true
-
 	cfg, err := config.LoadWithGlobal()
 	if err != nil || cfg == nil {
 		return
