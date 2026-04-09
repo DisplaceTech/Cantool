@@ -5,23 +5,23 @@ import (
 	"time"
 
 	"github.com/displacetech/cantool/internal/config"
+	"github.com/displacetech/cantool/internal/convenience"
 	"github.com/displacetech/cantool/internal/exec"
 	"github.com/displacetech/cantool/internal/output"
 	"github.com/displacetech/cantool/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
-var testVerbose bool
+var TestVerbose bool
 
-var testCmd = &cobra.Command{
+var TestCmd = &cobra.Command{
 	Use:   "test",
 	Short: "Run DAML Script tests",
 	RunE:  runTest,
 }
 
 func init() {
-	testCmd.Flags().BoolVarP(&testVerbose, "verbose", "v", false, "Show full SDK output")
-	rootCmd.AddCommand(testCmd)
+	TestCmd.Flags().BoolVarP(&TestVerbose, "verbose", "v", false, "Show full SDK output")
 }
 
 func runTest(cmd *cobra.Command, _ []string) error {
@@ -46,7 +46,9 @@ func runTest(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	result, err := sdk.Test(ctx, runner, sdkInfo, ".", testVerbose)
+	convenience.PrintDelegation(sdkInfo.Command, "test")
+
+	result, err := sdk.Test(ctx, runner, sdkInfo, ".", TestVerbose)
 	if err != nil {
 		if ce, ok := err.(*output.CantoolError); ok {
 			f.Error(ce)
@@ -54,7 +56,7 @@ func runTest(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if testVerbose {
+	if TestVerbose {
 		f.Info(result.RawOutput)
 	}
 

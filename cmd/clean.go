@@ -9,24 +9,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cleanAll bool
+var CleanAll bool
 
-var cleanCmd = &cobra.Command{
+var CleanCmd = &cobra.Command{
 	Use:   "clean",
 	Short: "Remove build artifacts",
 	RunE:  runClean,
 }
 
 func init() {
-	cleanCmd.Flags().BoolVar(&cleanAll, "all", false, "Also remove dist/ and .cantool/ local state")
-	rootCmd.AddCommand(cleanCmd)
+	CleanCmd.Flags().BoolVar(&CleanAll, "all", false, "Also remove dist/ and .cantool/ local state")
 }
 
 func runClean(cmd *cobra.Command, _ []string) error {
 	f := output.New(Format())
 
 	targets := []string{".daml"}
-	if cleanAll {
+	if CleanAll {
 		targets = append(targets, "dist", ".cantool")
 	}
 
@@ -52,7 +51,7 @@ func runClean(cmd *cobra.Command, _ []string) error {
 
 	if removed == 0 {
 		f.Info("Nothing to clean — no build artifacts found.")
-	} else if cleanAll {
+	} else if CleanAll {
 		f.Success("Cleaned all artifacts", nil)
 	} else {
 		f.Success("Cleaned build artifacts", nil)

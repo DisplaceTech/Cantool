@@ -8,7 +8,7 @@ Canton application development CLI — project scaffolding, DAML compilation, te
 
 ## Why Cantool
 
-- **Single binary, zero dependencies.** No Node.js, no npm, no JVM for the CLI itself. Download, chmod, run. Institutional environments with locked-down package managers get a tool that works out of the box.
+- **Single binary, zero runtime dependencies for core commands.** Download one file, `chmod +x`, run. The core CLI (scaffolding, MCP server, environments, plugins) requires no JVM, Node.js, or container runtime.
 - **Cross-compilation.** `GOOS=linux GOARCH=amd64 go build` produces a Linux binary from macOS. CI builds for all platforms trivially.
 - **Static linking.** No shared library conflicts, no version mismatches, no container image bloat. Copy the binary into an air-gapped environment and it works.
 - **Plugin system.** Extensible via JSON-RPC plugins. Core commands prove the plugin contract before any external plugins ship.
@@ -20,8 +20,11 @@ Canton application development CLI — project scaffolding, DAML compilation, te
 brew install displacetech/tap/cantool
 
 # Binary download (preferred for institutions)
-curl -sSL https://github.com/DisplaceTech/Cantool/releases/latest/download/cantool-$(uname -s)-$(uname -m) -o cantool
-chmod +x cantool && sudo mv cantool /usr/local/bin/
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m); [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+curl -sSL "https://github.com/DisplaceTech/Cantool/releases/latest/download/cantool_${OS}_${ARCH}.tar.gz" \
+  | tar xz cantool
+sudo mv cantool /usr/local/bin/
 
 # Go install (for Go developers)
 go install github.com/DisplaceTech/Cantool@latest
@@ -30,12 +33,15 @@ go install github.com/DisplaceTech/Cantool@latest
 ## Quick Start
 
 ```bash
-# Check prerequisites
-cantool doctor
-
 # Create a new project
 cantool init my-app --template basic
 cd my-app
+
+# Enable convenience commands (build, test, dev, clean, doctor)
+# Edit cantool.yaml and set: plugins.convenience.enabled: true
+
+# Check prerequisites
+cantool doctor
 
 # Build and test
 cantool build
@@ -47,18 +53,27 @@ cantool dev
 
 ## Commands
 
+### Core Commands
+
 | Command | Description |
 |---------|-------------|
 | `cantool init [name]` | Create a new Canton project from a template (`basic` or `token`) |
+| `cantool env {add,use,list,remove}` | Manage named environment profiles |
+| `cantool status` | Show Canton node health, version, and connected parties |
+| `cantool mcp serve` | Start MCP server for AI assistant integration (stdio) |
+| `cantool plugin list` | List installed plugins |
+
+### Optional Convenience Commands (plugin)
+
+These commands are provided by the built-in `convenience` plugin and must be enabled in `cantool.yaml` (see [Plugins](#plugins)). They delegate to dpm/daml and print an attribution line to stderr (e.g., `-> delegating to dpm build`).
+
+| Command | Description |
+|---------|-------------|
 | `cantool build [--watch]` | Compile DAML sources. `--watch` rebuilds on file changes |
 | `cantool test [--verbose]` | Run DAML Script tests with structured output |
 | `cantool dev [--port P]` | Start local sandbox with hot-reload and party provisioning |
-| `cantool env {add,use,list,remove}` | Manage named environment profiles |
-| `cantool status` | Show Canton node health, version, and connected parties |
-| `cantool doctor` | Check prerequisites (Java, SDK, Docker, ports, Go) |
 | `cantool clean [--all]` | Remove build artifacts |
-| `cantool mcp serve` | Start MCP server for AI assistant integration (stdio) |
-| `cantool plugin list` | List installed plugins |
+| `cantool doctor` | Check prerequisites (Java, SDK, Docker, ports, Go) |
 
 ### Global Flags
 
@@ -96,7 +111,9 @@ dev:
   hot-reload: true
   sandbox-port: 5011
 
-plugins: []
+plugins:
+  convenience:
+    enabled: true
 ```
 
 ## MCP Integration
@@ -118,9 +135,47 @@ Configure Cantool as an MCP server for Claude Code, Cursor, or other MCP-aware t
 
 **Available resources:** `canton://contracts`, `canton://parties`, `canton://packages`
 
-## Plugin Development
+## Plugins
 
-Cantool plugins are standalone binaries that communicate via JSON-RPC 2.0 over stdin/stdout. Plugins are discovered in `~/.cantool/plugins/` and must respond to `--metadata` with a JSON payload:
+Cantool supports built-in and external plugins. Plugins are configured in the `plugins` section of `cantool.yaml`.
+
+### Built-in: Convenience Plugin
+
+The `convenience` plugin ships with Cantool and provides wrapper commands for common dpm/daml operations. It is **disabled by default**.
+
+To enable it, add the following to your `cantool.yaml`:
+
+```yaml
+plugins:
+  convenience:
+    enabled: true
+```
+
+To disable it (or to use dpm directly):
+
+```yaml
+plugins:
+  convenience:
+    enabled: false
+```
+
+When enabled, the following commands become available:
+
+| Command | Delegates to |
+|---------|-------------|
+| `cantool build` | `dpm build` / `daml build` |
+| `cantool test` | `dpm test` / `daml test` |
+| `cantool dev` | `dpm sandbox` / `daml sandbox` |
+| `cantool clean` | Removes `.daml/` build artifacts |
+| `cantool doctor` | Checks for Java, SDK, Docker, ports, Go |
+
+When a convenience command delegates to an external tool, it prints a single attribution line to stderr (e.g., `-> delegating to dpm build`).
+
+Use `cantool plugin list` to see installed plugins.
+
+### External Plugins
+
+External plugins are standalone binaries that communicate via JSON-RPC 2.0 over stdin/stdout. Plugins are discovered in `~/.cantool/plugins/` and must respond to `--metadata` with a JSON payload:
 
 ```json
 {

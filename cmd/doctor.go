@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var doctorCmd = &cobra.Command{
+var DoctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check development environment prerequisites",
 	Long:  "Run health checks to verify that required tools and ports are available.",
@@ -43,8 +43,4 @@ var doctorCmd = &cobra.Command{
 		}
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(doctorCmd)
 }

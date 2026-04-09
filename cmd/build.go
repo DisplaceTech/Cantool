@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/displacetech/cantool/internal/config"
+	"github.com/displacetech/cantool/internal/convenience"
 	"github.com/displacetech/cantool/internal/exec"
 	"github.com/displacetech/cantool/internal/output"
 	"github.com/displacetech/cantool/internal/sdk"
@@ -13,17 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var buildWatch bool
+var BuildWatch bool
 
-var buildCmd = &cobra.Command{
+var BuildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Compile DAML sources",
 	RunE:  runBuild,
 }
 
 func init() {
-	buildCmd.Flags().BoolVar(&buildWatch, "watch", false, "Watch for changes and rebuild")
-	rootCmd.AddCommand(buildCmd)
+	BuildCmd.Flags().BoolVar(&BuildWatch, "watch", false, "Watch for changes and rebuild")
 }
 
 func runBuild(cmd *cobra.Command, _ []string) error {
@@ -46,11 +46,13 @@ func runBuild(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	convenience.PrintDelegation(sdkInfo.Command, "build")
+
 	if err := doBuild(ctx, f, runner, sdkInfo, cfg); err != nil {
 		return err
 	}
 
-	if buildWatch {
+	if BuildWatch {
 		return watchAndRebuild(ctx, f, runner, sdkInfo, cfg)
 	}
 
