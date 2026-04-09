@@ -145,6 +145,185 @@ func TestValidate_InvalidJSONAPIPort(t *testing.T) {
 	requireCode(t, c.Validate(), "CT1007")
 }
 
+// --- Global config tests ---
+
+const globalYAML = `version: "1"
+plugins:
+  convenience:
+    enabled: true
+`
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+}
+
+func TestLoadGlobal_XDGPath(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), globalYAML)
+
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestLoadGlobal_DotCantoolFallback(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".cantool", "config.yaml"), globalYAML)
+
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestLoadGlobal_XDGTakesPrecedence(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), globalYAML)
+	writeFile(t, filepath.Join(home, ".cantool", "config.yaml"), `version: "1"
+plugins:
+  convenience:
+    enabled: false
+`)
+
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled, "XDG path should take precedence")
+}
+
+func TestLoadGlobal_NoFile(t *testing.T) {
+	home := t.TempDir()
+
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	assert.Nil(t, cfg)
+}
+
+func TestLoadGlobal_InvalidYAML(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), "{{invalid")
+
+	_, err := loadGlobal(func() (string, error) { return home, nil })
+	var ce *output.CantoolError
+	require.True(t, errors.As(err, &ce))
+	assert.Equal(t, "CT1002", ce.Code)
+}
+
+func TestLoadGlobal_InvalidVersion(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), `version: "99"
+plugins:
+  convenience:
+    enabled: true
+`)
+
+	_, err := loadGlobal(func() (string, error) { return home, nil })
+	var ce *output.CantoolError
+	require.True(t, errors.As(err, &ce))
+	assert.Equal(t, "CT1004", ce.Code)
+}
+
+func TestLoadGlobal_NoVersionOK(t *testing.T) {
+	home := t.TempDir()
+	writeFile(t, filepath.Join(home, ".config", "cantool", "config.yaml"), `plugins:
+  convenience:
+    enabled: true
+`)
+
+	cfg, err := loadGlobal(func() (string, error) { return home, nil })
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestMergeConfig_ProjectOverridesGlobal(t *testing.T) {
+	global := &Config{
+		Version: "1",
+		Plugins: PluginsConfig{Convenience: ConvenienceConfig{Enabled: true}},
+	}
+	project := &loadedConfig{
+		config: &Config{
+			Version: "1",
+			Project: ProjectConfig{Name: "my-app"},
+			Plugins: PluginsConfig{Convenience: ConvenienceConfig{Enabled: false}},
+		},
+		setKeys: map[string]bool{"plugins.convenience.enabled": true},
+	}
+
+	merged := mergeConfig(global, project)
+	assert.Equal(t, "my-app", merged.Project.Name)
+	assert.False(t, merged.Plugins.Convenience.Enabled, "project explicit false should win")
+}
+
+func TestMergeConfig_GlobalFillsDefault(t *testing.T) {
+	global := &Config{
+		Version: "1",
+		Plugins: PluginsConfig{Convenience: ConvenienceConfig{Enabled: true}},
+	}
+	project := &loadedConfig{
+		config: &Config{
+			Version: "1",
+			Project: ProjectConfig{Name: "my-app"},
+		},
+		setKeys: map[string]bool{},
+	}
+
+	merged := mergeConfig(global, project)
+	assert.Equal(t, "my-app", merged.Project.Name)
+	assert.True(t, merged.Plugins.Convenience.Enabled, "global default should apply")
+}
+
+func TestMergeConfig_ProjectPreservesAllFields(t *testing.T) {
+	global := &Config{
+		Version: "1",
+		Plugins: PluginsConfig{Convenience: ConvenienceConfig{Enabled: true}},
+	}
+	project := &loadedConfig{
+		config: &Config{
+			Version: "1",
+			Project: ProjectConfig{Name: "my-app", SDKVersion: "3.4.11"},
+			Parties: []PartyConfig{{Name: "Alice"}},
+			Dev:     DevConfig{HotReload: true, SandboxPort: 5011},
+		},
+		setKeys: map[string]bool{},
+	}
+
+	merged := mergeConfig(global, project)
+	assert.Equal(t, "3.4.11", merged.Project.SDKVersion)
+	assert.Len(t, merged.Parties, 1)
+	assert.True(t, merged.Dev.HotReload)
+	assert.Equal(t, 5011, merged.Dev.SandboxPort)
+}
+
+func TestLoadWithGlobal_ProjectOnly(t *testing.T) {
+	dir := t.TempDir()
+	writeTempConfig(t, dir, validYAML)
+
+	orig, _ := os.Getwd()
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { _ = os.Chdir(orig) })
+
+	cfg, err := LoadWithGlobal()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "test-app", cfg.Project.Name)
+	assert.True(t, cfg.Plugins.Convenience.Enabled)
+}
+
+func TestLoadWithGlobal_NeitherExists(t *testing.T) {
+	dir := t.TempDir()
+	orig, _ := os.Getwd()
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { _ = os.Chdir(orig) })
+
+	cfg, err := LoadWithGlobal()
+	require.NoError(t, err)
+	assert.Nil(t, cfg)
+}
+
 func TestLoadFrom_EnvVarOverride(t *testing.T) {
 	dir := t.TempDir()
 	path := writeTempConfig(t, dir, validYAML)

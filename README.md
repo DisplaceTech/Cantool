@@ -38,7 +38,8 @@ cantool init my-app --template basic
 cd my-app
 
 # Enable convenience commands (build, test, dev, clean, doctor)
-# Edit cantool.yaml and set: plugins.convenience.enabled: true
+# Either set globally once: see Configuration > Global Config
+# Or per-project in cantool.yaml: plugins.convenience.enabled: true
 
 # Check prerequisites
 cantool doctor
@@ -83,6 +84,29 @@ These commands are provided by the built-in `convenience` plugin and must be ena
 | `--version` | Print version |
 
 ## Configuration
+
+Cantool supports two levels of configuration:
+
+1. **Global config** — `~/.config/cantool/config.yaml` (XDG) or `~/.cantool/config.yaml` (fallback). Applied to all projects. Useful for enabling plugins once across all projects.
+2. **Project config** — `cantool.yaml` in the project root. Project settings override global settings.
+
+### Global Config
+
+Create a global config to set defaults for all projects:
+
+```bash
+mkdir -p ~/.config/cantool
+cat > ~/.config/cantool/config.yaml << 'EOF'
+version: "1"
+plugins:
+  convenience:
+    enabled: true
+EOF
+```
+
+This enables convenience commands everywhere without editing each project's `cantool.yaml`. A project can still override the global setting by explicitly setting `plugins.convenience.enabled: false` in its own `cantool.yaml`.
+
+### Project Config
 
 Cantool projects use a `cantool.yaml` file:
 
@@ -137,13 +161,25 @@ Configure Cantool as an MCP server for Claude Code, Cursor, or other MCP-aware t
 
 ## Plugins
 
-Cantool supports built-in and external plugins. Plugins are configured in the `plugins` section of `cantool.yaml`.
+Cantool supports built-in and external plugins. Plugins are configured in the `plugins` section of `cantool.yaml` or the global config file (see [Configuration](#configuration)).
 
 ### Built-in: Convenience Plugin
 
 The `convenience` plugin ships with Cantool and provides wrapper commands for common dpm/daml operations. It is **disabled by default**.
 
-To enable it, add the following to your `cantool.yaml`:
+To enable it globally (all projects):
+
+```bash
+mkdir -p ~/.config/cantool
+cat > ~/.config/cantool/config.yaml << 'EOF'
+version: "1"
+plugins:
+  convenience:
+    enabled: true
+EOF
+```
+
+Or enable it per-project in `cantool.yaml`:
 
 ```yaml
 plugins:
@@ -151,7 +187,7 @@ plugins:
     enabled: true
 ```
 
-To disable it (or to use dpm directly):
+To disable it in a specific project (overriding a global enable):
 
 ```yaml
 plugins:

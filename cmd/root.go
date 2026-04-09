@@ -25,8 +25,8 @@ func init() {
 }
 
 func registerConvenienceCommands() {
-	cfg, err := config.Load()
-	if err != nil {
+	cfg, err := config.LoadWithGlobal()
+	if err != nil || cfg == nil {
 		return
 	}
 
